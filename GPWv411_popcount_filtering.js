@@ -1,4 +1,4 @@
-''' JavaScript written in Google Earth Engine.'''
+'''JavaScript written in Google Earth Engine.'''
 
 // Load GPWv411 Population Count dataset.
 var dataset = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Count");
@@ -31,22 +31,46 @@ filtered = filtered.map(function(image) {
 
 var image = filtered
   .filterDate(timeStart, timeStart.advance(timeInterval, timeMode))
-  .median()
-  .select('population_count')
+  .median();
 
-var samples = image.sample({
+// Try 3... trying to figure out how to extract data from rectangle.
+
+var imageArray = image.sampleRectangle({
   region: geometry,
-  geometries: false,
-  scale: 100
+  defaultValue: 0
 });
 
-Export.table.toDrive({
-  collection: samples,
-  description: 'GPWv411_pc_time1',
-  folder: 'GoogleEarthEngine',
-  fileFormat: 'CSV',
-  selectors: ['population_count']
-});
+print(imageArray.get('population_count').getInfo());
+
+// seems to work... but why the low resolution?? only 160 elements in array
+
+// Try 2... seems good but TIFF format seems a bit unnecessary. Very high res (too high).
+
+// var projection = image.select('population_count').projection().getInfo();
+
+// Export.image.toDrive({
+//   image: image,
+//   description: 'GPW_v411_pc_time1',
+//   crs: projection.crs,
+//   crsTransform: projection.transform,
+//   region: geometry
+// });
+
+// Try 1... totally wrong
+
+// var samples = image.sample({
+//   region: geometry,
+//   geometries: true,
+//   numPixels: 1e4,
+// });
+
+// Export.table.toDrive({
+//   collection: samples,
+//   description: 'GPWv411_pc_time1',
+//   folder: 'GoogleEarthEngine',
+//   fileFormat: 'CSV',
+//   selectors: ['population_count']
+// });
 
 // Display first time-step.
 var raster = filtered
