@@ -31,30 +31,29 @@ filtered = filtered.map(function(image) {
 
 var image = filtered
   .filterDate(timeStart, timeStart.advance(timeInterval, timeMode))
-  .median();
+  .first();
 
 // Try 3... trying to figure out how to extract data from rectangle.
 
-var imageArray = image.sampleRectangle({
-  region: geometry,
-  defaultValue: 0
+// var imageArray = image.sampleRectangle({
+//   region: geometry,
+//   defaultValue: 0
+// });  // too high resolution. Does not work.
+
+// print(imageArray.get('population_count').getInfo());
+
+// Try 2... turns out this is the best option. Export very high-res TIFF.
+
+var projection = image.select('population_count').projection().getInfo();
+
+Export.image.toDrive({
+  image: image,
+  description: 'GPW_v411_pc_time1',
+  folder: 'GoogleEarthEngine',
+  crs: projection.crs,
+  crsTransform: projection.transform,
+  region: geometry
 });
-
-print(imageArray.get('population_count').getInfo());
-
-// seems to work... but why the low resolution?? only 160 elements in array
-
-// Try 2... seems good but TIFF format seems a bit unnecessary. Very high res (too high).
-
-// var projection = image.select('population_count').projection().getInfo();
-
-// Export.image.toDrive({
-//   image: image,
-//   description: 'GPW_v411_pc_time1',
-//   crs: projection.crs,
-//   crsTransform: projection.transform,
-//   region: geometry
-// });
 
 // Try 1... totally wrong
 
@@ -75,7 +74,7 @@ print(imageArray.get('population_count').getInfo());
 // Display first time-step.
 var raster = filtered
   .filterDate(timeStart, timeStart.advance(timeInterval, timeMode))
-  .median()
+  .first()
   .select('population_count');
 
 var raster_vis = {
