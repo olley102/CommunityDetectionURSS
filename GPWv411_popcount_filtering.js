@@ -116,11 +116,8 @@ function loadTimeStep() {
 
   // Get image of time-step.
   var image = filtered
-    .filterDate(timeStepStart, timeStepEnd);
-
-  print(image)
-
-  // image = image.first();
+    .filterDate(timeStepStart, timeStepEnd)
+    .first();
 
   // Time-step info panel.
   var timePanel = ui.Panel({
