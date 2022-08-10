@@ -1,9 +1,11 @@
+// JavaScript written in Google Earth Engine.
+
 // Load GPWv411 Population Count dataset.
 var dataset = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Count");
 
 // Specify start and end of timeframe.
 var timeStart = ee.Date('2000-01-01');
-var timeEnd = ee.Date('2020-01-01');
+var timeEnd = ee.Date('2025-01-01');
 
 // Specify time interval and unit of time, e.g. weeks/months/years
 var timeInterval = 5;
