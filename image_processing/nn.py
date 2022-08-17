@@ -85,7 +85,7 @@ class WindowAE:
                             unravel_p[1]:unravel_p[1]+self.window_size[1]]
             window = np.expand_dims(window, axis=0)
             enc_p = self.encoder.predict(window)
-            enc_full[unravel_p] = np.flatten(enc_p)
+            enc_full[unravel_p] = enc_p.flatten()
 
         return enc_full
 
@@ -101,8 +101,11 @@ class WindowAE:
             window = np.expand_dims(window, axis=0)
             pred_window = self.model.predict(window)
 
-            # Store central pixel of pred_window in pred.
-            pred[unravel_p] = pred_window[0, unravel_p[0]+pad_half[0], unravel_p[1]+pad_half[1]]
+            # Store central pixel of pred_window in pred. Remove predictions for positions.
+            pred[unravel_p] = pred_window[0, unravel_p[0]+pad_half[0], unravel_p[1]+pad_half[1], :-2]
+
+        # Reverse normalization.
+        pred = pred * (self.max - self.min) + self.min
 
         return pred
 
