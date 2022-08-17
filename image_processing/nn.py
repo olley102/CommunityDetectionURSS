@@ -75,12 +75,14 @@ class WindowAE:
     def transform_y(self, y):
         return self.transform_x(y)
 
-    def encode(self, x):
+    def encode(self, x, verbose=False):
         x_full = self.transform_x(x)
         enc_full = np.zeros((*x.shape[:2], self.encoder_sizes[-1]))
 
         for p in range(x.shape[0]*x.shape[1]):
             unravel_p = np.unravel_index(p, x.shape[:2])
+            if verbose:
+                print(f'Encoding pixel {unravel_p}')
             window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
                             unravel_p[1]:unravel_p[1]+self.window_size[1]]
             window = np.expand_dims(window, axis=0)
@@ -89,20 +91,22 @@ class WindowAE:
 
         return enc_full
 
-    def predict(self, x):
+    def predict(self, x, verbose=False):
         x_full = self.transform_x(x)
         pred = np.zeros_like(x)
         pad_half = tuple(math.floor(s/2) for s in self.window_size)
 
         for p in range(x.shape[0]*x.shape[1]):
             unravel_p = np.unravel_index(p, x.shape[:2])
+            if verbose:
+                print(f'Predicting pixel {unravel_p}')
             window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
                             unravel_p[1]:unravel_p[1]+self.window_size[1]]
             window = np.expand_dims(window, axis=0)
             pred_window = self.model.predict(window)
 
             # Store central pixel of pred_window in pred. Remove predictions for positions.
-            pred[unravel_p] = pred_window[0, unravel_p[0]+pad_half[0], unravel_p[1]+pad_half[1], :-2]
+            pred[unravel_p] = pred_window[0, pad_half[0], pad_half[1], :-2]
 
         # Reverse normalization.
         pred = pred * (self.max - self.min) + self.min
