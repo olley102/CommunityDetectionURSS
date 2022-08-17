@@ -29,11 +29,7 @@ class WindowAE:
         self.decoder_sizes = (*encoder_sizes[-2::-1], flat_size)
 
     def make(self):
-        if (
-                not self._built and
-                self.encoder_sizes is not None and
-                self.decoder_sizes is not None
-        ):
+        if not self._built and self.encoder_sizes is not None and self.decoder_sizes is not None:
             stack_size = self.window_size + (self.num_channels+2,)
             input_window = Input(stack_size)
 
@@ -87,6 +83,7 @@ class WindowAE:
             unravel_p = np.unravel_index(p, x.shape[:2])
             window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
                             unravel_p[1]:unravel_p[1]+self.window_size[1]]
+            window = np.expand_dims(window, axis=0)
             enc_p = self.encoder.predict(window)
             enc_full[unravel_p] = np.flatten(enc_p)
 
@@ -105,8 +102,7 @@ class WindowAE:
             pred_window = self.model.predict(window)
 
             # Store central pixel of pred_window in pred.
-            pred[unravel_p] = pred_window[unravel_p[0]+pad_half[0],
-                                          unravel_p[1]+pad_half[1]]
+            pred[unravel_p] = pred_window[0, unravel_p[0]+pad_half[0], unravel_p[1]+pad_half[1]]
 
         return pred
 
@@ -118,34 +114,27 @@ class WindowAE:
 
         for ep in range(epochs):
             # Make a random choice of pixels.
-            ravel_choice = np.random.choice(np.arange(x.shape[0]*x.shape[1]),
-                                            batch_size, replace=False)
-            unravel_choice = np.column_stack(np.unravel_index(ravel_choice,
-                                                              x.shape[:2]))
+            ravel_choice = np.random.choice(np.arange(x.shape[0]*x.shape[1]), batch_size, replace=False)
+            unravel_choice = np.column_stack(np.unravel_index(ravel_choice, x.shape[:2]))
 
             # Make windows for each pixel and stack them.
             # Central pixel is chosen pixel, but we don't have to shift start
             # indices.
-            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0],
-                                     j:j+self.window_size[1]]
+            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
                                      for i, j in unravel_choice), axis=0)
-            y_stack = np.stack(tuple(y_full[i:i+self.window_size[0],
-                                     j:j+self.window_size[1]]
+            y_stack = np.stack(tuple(y_full[i:i+self.window_size[0], j:j+self.window_size[1]]
                                      for i, j in unravel_choice), axis=0)
 
             # Train network on stack.
-            history.append(self.model.fit(x_stack, y_stack, epochs=ep+1,
-                                          initial_epoch=ep, callbacks=self.callbacks,
+            history.append(self.model.fit(x_stack, y_stack, epochs=ep+1, initial_epoch=ep, callbacks=self.callbacks,
                                           **kwargs))
 
         return history
 
     def make_callback(self, filepath, save_weights_only=True,
                       save_best_only=False, **kwargs):
-        checkpoint_callback = ModelCheckpoint(filepath=filepath,
-                                              save_weights_only=save_weights_only,
-                                              save_best_only=save_best_only,
-                                              **kwargs)
+        checkpoint_callback = ModelCheckpoint(filepath=filepath, save_weights_only=save_weights_only,
+                                              save_best_only=save_best_only, **kwargs)
         self.callbacks.append(checkpoint_callback)
 
     def clear_callbacks(self):
