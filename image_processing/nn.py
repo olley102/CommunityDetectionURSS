@@ -79,15 +79,23 @@ class WindowAE:
         x_full = self.transform_x(x)
         enc_full = np.zeros((*x.shape[:2], self.encoder_sizes[-1]))
 
-        for p in range(x.shape[0]*x.shape[1]):
-            unravel_p = np.unravel_index(p, x.shape[:2])
+        # for p in range(x.shape[0]*x.shape[1]):
+        #     unravel_p = np.unravel_index(p, x.shape[:2])
+        #     if verbose:
+        #         print(f'Encoding pixel {unravel_p}')
+        #     window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
+        #                     unravel_p[1]:unravel_p[1]+self.window_size[1]]
+        #     window = np.expand_dims(window, axis=0)
+        #     enc_p = self.encoder.predict(window)
+        #     enc_full[unravel_p] = enc_p.flatten()
+
+        for i in range(x.shape[0]):
             if verbose:
-                print(f'Encoding pixel {unravel_p}')
-            window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
-                            unravel_p[1]:unravel_p[1]+self.window_size[1]]
-            window = np.expand_dims(window, axis=0)
-            enc_p = self.encoder.predict(window)
-            enc_full[unravel_p] = enc_p.flatten()
+                print(f'Predicting row {i}')
+            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
+                                     for j in range(x.shape[1])), axis=0)
+            enc_stack = self.encoder.predict(x_stack)
+            enc_full[i] = enc_stack.reshape(-1, enc_full.shape[-1])
 
         return enc_full
 
@@ -96,17 +104,27 @@ class WindowAE:
         pred = np.zeros_like(x)
         pad_half = tuple(math.floor(s/2) for s in self.window_size)
 
-        for p in range(x.shape[0]*x.shape[1]):
-            unravel_p = np.unravel_index(p, x.shape[:2])
+        for i in range(x.shape[0]):
             if verbose:
-                print(f'Predicting pixel {unravel_p}')
-            window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
-                            unravel_p[1]:unravel_p[1]+self.window_size[1]]
-            window = np.expand_dims(window, axis=0)
-            pred_window = self.model.predict(window)
+                print(f'Predicting row {i}')
+            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
+                                     for j in range(x.shape[1])), axis=0)
+            p_stack = self.model.predict(x_stack)
 
-            # Store central pixel of pred_window in pred. Remove predictions for positions.
-            pred[unravel_p] = pred_window[0, pad_half[0], pad_half[1], :-2]
+            # Store central pixel of p_stack in pred. Remove predictions for positions.
+            pred[i] = p_stack[:, pad_half[0], pad_half[1], :-2]
+
+        # for p in range(x.shape[0]*x.shape[1]):
+        #     unravel_p = np.unravel_index(p, x.shape[:2])
+        #     if verbose:
+        #         print(f'Predicting pixel {unravel_p}')
+        #     window = x_full[unravel_p[0]:unravel_p[0]+self.window_size[0],
+        #                     unravel_p[1]:unravel_p[1]+self.window_size[1]]
+        #     window = np.expand_dims(window, axis=0)
+        #     pred_window = self.model.predict(window)
+        #
+        #     # Store central pixel of pred_window in pred. Remove predictions for positions.
+        #     pred[unravel_p] = pred_window[0, pad_half[0], pad_half[1], :-2]
 
         # Reverse normalization.
         pred = pred * (self.max - self.min) + self.min
