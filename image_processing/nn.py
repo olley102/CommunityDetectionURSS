@@ -84,10 +84,11 @@ class WindowAE:
 
         pixel_count = 0
         while pixel_count < x.shape[0]*x.shape[1]:
+            end_pixel = min(pixel_count + batch_size, x.shape[0]*x.shape[1])
             if verbose:
-                print(f'Encoding pixels {pixel_count}:{pixel_count+batch_size}')
+                print(f'Encoding pixels {pixel_count}:{end_pixel}')
 
-            ravel_choice = np.arange(pixel_count, pixel_count+batch_size)
+            ravel_choice = np.arange(pixel_count, end_pixel)
 
             unravel_choice = np.unravel_index(ravel_choice, x.shape[:2])
             x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
@@ -95,7 +96,7 @@ class WindowAE:
             p_stack = self.encoder.predict(x_stack)
             enc_full[unravel_choice] = p_stack
 
-            pixel_count += batch_size
+            pixel_count = end_pixel
 
         # for p in range(x.shape[0]*x.shape[1]):
         #     unravel_p = np.unravel_index(p, x.shape[:2])
