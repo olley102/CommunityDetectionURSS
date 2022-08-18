@@ -2,7 +2,7 @@ import os
 import math
 import numpy as np
 from keras import Input, Model
-from keras.layers import Activation, Flatten, Dense, Reshape
+from keras.layers import Flatten, Dense, Reshape
 from keras.callbacks import ModelCheckpoint
 
 
@@ -10,8 +10,8 @@ class WindowAE:
     """
     Sliding window autoencoder for encoding local information for an image.
     """
-    def __init__(self, window_size=(7, 7), num_channels=1, encoder_sizes=None,
-                 decoder_sizes=None):
+    def __init__(self, window_size=(7, 7), num_channels=1, encoder_sizes=None, decoder_sizes=None,
+                 bottleneck_activation='relu', final_activation='linear'):
         self.model = None
         self.encoder = None
         self._built = False
@@ -21,6 +21,8 @@ class WindowAE:
         self.num_channels = num_channels
         self.encoder_sizes = encoder_sizes
         self.decoder_sizes = decoder_sizes
+        self.bottleneck_activation = bottleneck_activation
+        self.final_activation = final_activation
         self.callbacks = []
 
     def auto_decoder_sizes(self, encoder_sizes):
@@ -34,14 +36,15 @@ class WindowAE:
             input_window = Input(stack_size)
 
             x = Flatten()(input_window)
-            for s in self.encoder_sizes:
+            for s in self.encoder_sizes[:-1]:
                 x = Dense(s, activation='relu')(x)
 
-            encoded = Activation('linear')(x)
+            encoded = Dense(self.encoder_sizes[-1], activation=self.bottleneck_activation)(x)
 
-            for s in self.decoder_sizes:
+            for s in self.decoder_sizes[:-1]:
                 x = Dense(s, activation='relu')(x)
 
+            x = Dense(self.decoder_sizes[-1], activation=self.final_activation)(x)
             decoded = Reshape(stack_size)(x)  # must match unraveled decoder_sizes[-1]
 
             self.model = Model(input_window, decoded)
