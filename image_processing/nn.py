@@ -127,10 +127,11 @@ class WindowAE:
 
         pixel_count = 0
         while pixel_count < x.shape[0]*x.shape[1]:
+            end_pixel = min(pixel_count + batch_size, x.shape[0]*x.shape[1])
             if verbose:
-                print(f'Predicting pixels {pixel_count}:{pixel_count+batch_size}')
+                print(f'Predicting pixels {pixel_count}:{end_pixel}')
 
-            ravel_choice = np.arange(pixel_count, pixel_count+batch_size)
+            ravel_choice = np.arange(pixel_count, end_pixel)
 
             unravel_choice = np.unravel_index(ravel_choice, x.shape[:2])
             x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
@@ -140,7 +141,7 @@ class WindowAE:
             # Store central pixels of p_stack in pred. Remove predictions for positions.
             pred[unravel_choice] = p_stack[:, pad_half[0], pad_half[1], :-2]
 
-            pixel_count += batch_size
+            pixel_count = end_pixel
 
         # for i in range(x.shape[0]):
         #     if verbose:
