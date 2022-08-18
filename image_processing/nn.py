@@ -75,9 +75,27 @@ class WindowAE:
     def transform_y(self, y):
         return self.transform_x(y)
 
-    def encode(self, x, verbose=False):
+    def encode(self, x, verbose=False, batch_size=None):
+        if batch_size is None:
+            batch_size = x.shape[1]
+
         x_full = self.transform_x(x)
         enc_full = np.zeros((*x.shape[:2], self.encoder_sizes[-1]))
+
+        pixel_count = 0
+        while pixel_count < x.shape[0]*x.shape[1]:
+            if verbose:
+                print(f'Encoding pixels {pixel_count}:{pixel_count+batch_size}')
+
+            ravel_choice = np.arange(pixel_count, pixel_count+batch_size)
+
+            unravel_choice = np.unravel_index(ravel_choice, x.shape[:2])
+            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
+                                     for i, j in np.column_stack(unravel_choice)), axis=0)
+            p_stack = self.encoder.predict(x_stack)
+            enc_full[unravel_choice] = p_stack
+
+            pixel_count += batch_size
 
         # for p in range(x.shape[0]*x.shape[1]):
         #     unravel_p = np.unravel_index(p, x.shape[:2])
@@ -89,30 +107,50 @@ class WindowAE:
         #     enc_p = self.encoder.predict(window)
         #     enc_full[unravel_p] = enc_p.flatten()
 
-        for i in range(x.shape[0]):
-            if verbose:
-                print(f'Predicting row {i}')
-            x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
-                                     for j in range(x.shape[1])), axis=0)
-            enc_stack = self.encoder.predict(x_stack)
-            enc_full[i] = enc_stack.reshape(-1, enc_full.shape[-1])
+        # for i in range(x.shape[0]):
+        #     if verbose:
+        #         print(f'Predicting row {i}')
+        #     x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
+        #                              for j in range(x.shape[1])), axis=0)
+        #     enc_stack = self.encoder.predict(x_stack)
+        #     enc_full[i] = enc_stack.reshape(-1, enc_full.shape[-1])
 
         return enc_full
 
-    def predict(self, x, verbose=False):
+    def predict(self, x, verbose=False, batch_size=None):
+        if batch_size is None:
+            batch_size = x.shape[1]
+
         x_full = self.transform_x(x)
         pred = np.zeros_like(x)
         pad_half = tuple(math.floor(s/2) for s in self.window_size)
 
-        for i in range(x.shape[0]):
+        pixel_count = 0
+        while pixel_count < x.shape[0]*x.shape[1]:
             if verbose:
-                print(f'Predicting row {i}')
+                print(f'Predicting pixels {pixel_count}:{pixel_count+batch_size}')
+
+            ravel_choice = np.arange(pixel_count, pixel_count+batch_size)
+
+            unravel_choice = np.unravel_index(ravel_choice, x.shape[:2])
             x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
-                                     for j in range(x.shape[1])), axis=0)
+                                     for i, j in np.column_stack(unravel_choice)), axis=0)
             p_stack = self.model.predict(x_stack)
 
-            # Store central pixel of p_stack in pred. Remove predictions for positions.
-            pred[i] = p_stack[:, pad_half[0], pad_half[1], :-2]
+            # Store central pixels of p_stack in pred. Remove predictions for positions.
+            pred[unravel_choice] = p_stack[:, pad_half[0], pad_half[1], :-2]
+
+            pixel_count += batch_size
+
+        # for i in range(x.shape[0]):
+        #     if verbose:
+        #         print(f'Predicting row {i}')
+        #     x_stack = np.stack(tuple(x_full[i:i+self.window_size[0], j:j+self.window_size[1]]
+        #                              for j in range(x.shape[1])), axis=0)
+        #     p_stack = self.model.predict(x_stack)
+        #
+        #     # Store central pixel of p_stack in pred. Remove predictions for positions.
+        #     pred[i] = p_stack[:, pad_half[0], pad_half[1], :-2]
 
         # for p in range(x.shape[0]*x.shape[1]):
         #     unravel_p = np.unravel_index(p, x.shape[:2])
