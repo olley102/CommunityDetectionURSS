@@ -142,12 +142,12 @@ class WindowAE:
                                      for i, j in np.column_stack(unravel_choice)), axis=0)
             p_stack = self.model.predict(x_stack)
 
-            print(f'p_stack.shape={p_stack.shape}')
-            print(f'np.any(p_stack)={np.any(p_stack)}')
+            # print(f'p_stack.shape={p_stack.shape}')
+            # print(f'np.any(p_stack)={np.any(p_stack)}')
 
             # Store central pixels of p_stack in pred. Remove predictions for positions.
             pred[unravel_choice] = p_stack[:, pad_half[0], pad_half[1], :-2]
-            print(f'pred[unravel_choice]={pred[unravel_choice]}')
+            # print(f'pred[unravel_choice]={pred[unravel_choice]}')
 
             pixel_count = end_pixel
 
@@ -173,7 +173,7 @@ class WindowAE:
         #     # Store central pixel of pred_window in pred. Remove predictions for positions.
         #     pred[unravel_p] = pred_window[0, pad_half[0], pad_half[1], :-2]
 
-        print(f'np.any(pred)={np.any(pred)}')
+        # print(f'np.any(pred)={np.any(pred)}')
 
         # Reverse normalization.
         pred = pred * (self.max - self.min) + self.min
