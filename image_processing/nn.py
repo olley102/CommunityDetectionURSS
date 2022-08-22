@@ -48,7 +48,8 @@ class WindowAE:
                 x = Dense(s, activation='relu')(x)
 
             x = Dense(self.decoder_sizes[-1], activation=self.final_activation)(x)
-            decoded = Reshape(stack_size)(x)  # must match unraveled decoder_sizes[-1]
+            # Note, decoder_sizes[-1] does not have to be equal to stack_size in last dimension
+            decoded = Reshape((*stack_size[:-1], -1))(x)  # must match unraveled decoder_sizes[-1]
 
             self.model = Model(input_window, decoded)
             self.encoder = Model(input_window, encoded)
@@ -60,7 +61,7 @@ class WindowAE:
         self.max = np.max(x, axis=(0, 1))
         self.min = np.min(x, axis=(0, 1))
 
-    def transform_x(self, x):
+    def transform_x(self, x, concat_position=True):
         # Normalize.
         max_expand = np.expand_dims(self.max, axis=(0, 1))
         min_expand = np.expand_dims(self.min, axis=(0, 1))
@@ -71,17 +72,19 @@ class WindowAE:
         pad_widths = tuple((p, p) for p in pad)
         x_pad = np.pad(x_norm, pad_widths)
 
-        # Stack array with positional information.
-        pos_i = np.arange(-pad[0], x.shape[0]+pad[0], dtype='float')
-        pos_j = np.arange(-pad[1], x.shape[1]+pad[1], dtype='float')
-        x_i = np.outer(pos_i, np.ones(x_pad.shape[1], dtype='float'))
-        x_j = np.outer(np.ones(x_pad.shape[0], dtype='float'), pos_j)
-        x_full = np.dstack((x_pad, x_i, x_j))
+        if concat_position:
+            # Stack array with positional information.
+            pos_i = np.arange(-pad[0], x.shape[0]+pad[0], dtype='float')
+            pos_j = np.arange(-pad[1], x.shape[1]+pad[1], dtype='float')
+            x_i = np.outer(pos_i, np.ones(x_pad.shape[1], dtype='float'))
+            x_j = np.outer(np.ones(x_pad.shape[0], dtype='float'), pos_j)
+            x_full = np.dstack((x_pad, x_i, x_j))
+            return x_full
+        else:
+            return x_pad
 
-        return x_full
-
-    def transform_y(self, y):
-        return self.transform_x(y)
+    def transform_y(self, y, concat_position=False):
+        return self.transform_x(y, concat_position=concat_position)
 
     def encode(self, x, verbose=False, batch_size=None):
         if batch_size is None:
@@ -151,7 +154,7 @@ class WindowAE:
             # print(f'np.any(p_stack)={np.any(p_stack)}')
 
             # Store central pixels of p_stack in pred. Remove predictions for positions.
-            pred[unravel_choice] = p_stack[:, pad_half[0], pad_half[1], :-2]
+            pred[unravel_choice] = p_stack[:, pad_half[0], pad_half[1], :self.num_channels]
             # print(f'pred[unravel_choice]={pred[unravel_choice]}')
 
             pixel_count = end_pixel
