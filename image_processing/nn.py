@@ -2,7 +2,7 @@ import os
 import math
 import numpy as np
 from keras import Input, Model
-from keras.layers import Flatten, Dense, Reshape
+from keras.layers import Activation, Flatten, Dense, Reshape
 from keras.callbacks import ModelCheckpoint
 
 
@@ -40,6 +40,7 @@ class WindowAE:
                 x = Dense(s, activation='relu')(x)
 
             encoded = Dense(self.encoder_sizes[-1], activation=self.bottleneck_activation)(x)
+            x = Activation('linear')(encoded)
 
             for s in self.decoder_sizes[:-1]:
                 x = Dense(s, activation='relu')(x)
