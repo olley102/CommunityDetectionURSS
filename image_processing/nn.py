@@ -11,7 +11,7 @@ class WindowAE:
     Sliding window autoencoder for encoding local information for an image.
     """
     def __init__(self, window_size=(7, 7), num_channels=1, encoder_sizes=None, decoder_sizes=None,
-                 bottleneck_activation='relu', final_activation='linear'):
+                 bottleneck_activation='relu', final_activation='linear', encoding_regularizer=None):
         self.model = None
         self.encoder = None
         self._built = False
@@ -23,6 +23,7 @@ class WindowAE:
         self.decoder_sizes = decoder_sizes
         self.bottleneck_activation = bottleneck_activation
         self.final_activation = final_activation
+        self.encoding_regularizer = encoding_regularizer
         self.callbacks = []
 
     def auto_decoder_sizes(self, encoder_sizes):
@@ -37,9 +38,10 @@ class WindowAE:
 
             x = Flatten()(input_window)
             for s in self.encoder_sizes[:-1]:
-                x = Dense(s, activation='relu')(x)
+                x = Dense(s, activation='relu', activity_regularizer=self.encoding_regularizer)(x)
 
-            encoded = Dense(self.encoder_sizes[-1], activation=self.bottleneck_activation)(x)
+            encoded = Dense(self.encoder_sizes[-1], activation=self.bottleneck_activation,
+                            activity_regularizer=self.encoding_regularizer)(x)
             x = Activation('linear')(encoded)
 
             for s in self.decoder_sizes[:-1]:
