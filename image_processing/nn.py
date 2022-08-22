@@ -41,7 +41,7 @@ class WindowAE:
                 x = Dense(s, activation='relu', activity_regularizer=self.encoding_regularizer)(x)
 
             encoded = Dense(self.encoder_sizes[-1], activation=self.bottleneck_activation,
-                            activity_regularizer=self.encoding_regularizer)(x)
+                            kernel_regularizer=self.encoding_regularizer)(x)
             x = Activation('linear')(encoded)
 
             for s in self.decoder_sizes[:-1]:
