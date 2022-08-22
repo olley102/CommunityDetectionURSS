@@ -15,8 +15,8 @@ class WindowAE:
         self.model = None
         self.encoder = None
         self._built = False
-        self.max = 1.0
-        self.min = 0.0
+        self.max = np.ones(num_channels)
+        self.min = np.zeros(num_channels)
         self.window_size = window_size
         self.num_channels = num_channels
         self.encoder_sizes = encoder_sizes
@@ -54,12 +54,14 @@ class WindowAE:
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse'])
 
     def fit_transform(self, x):
-        self.max = np.max(x)
-        self.min = np.min(x)
+        self.max = np.max(x, axis=(0, 1))
+        self.min = np.min(x, axis=(0, 1))
 
     def transform_x(self, x):
         # Normalize.
-        x_norm = (x - self.min) / (self.max - self.min)
+        max_expand = np.expand_dims(self.max, axis=(0, 1))
+        min_expand = np.expand_dims(self.min, axis=(0, 1))
+        x_norm = (x - min_expand) / (max_expand - min_expand)
 
         # Zero padding.
         pad = (*(math.floor(s/2) for s in self.window_size), 0)
@@ -176,7 +178,9 @@ class WindowAE:
         # print(f'np.any(pred)={np.any(pred)}')
 
         # Reverse normalization.
-        pred = pred * (self.max - self.min) + self.min
+        max_expand = np.expand_dims(self.max, axis=(0, 1))
+        min_expand = np.expand_dims(self.min, axis=(0, 1))
+        pred = pred * (max_expand - min_expand) + min_expand
 
         return pred
 
