@@ -11,7 +11,8 @@ class WindowAE:
     Sliding window autoencoder for encoding local information for an image.
     """
     def __init__(self, window_size=(7, 7), num_channels=1, encoder_sizes=None, decoder_sizes=None,
-                 bottleneck_activation='relu', final_activation='linear', encoding_regularizer=None):
+                 bottleneck_activation='relu', final_activation='linear', encoding_regularizer=None,
+                 x_pos=True, y_pos=False):
         self.model = None
         self.encoder = None
         self._built = False
@@ -24,6 +25,8 @@ class WindowAE:
         self.bottleneck_activation = bottleneck_activation
         self.final_activation = final_activation
         self.encoding_regularizer = encoding_regularizer
+        self.x_pos = x_pos
+        self.y_pos = y_pos
         self.callbacks = []
 
     def auto_decoder_sizes(self, encoder_sizes):
@@ -33,7 +36,7 @@ class WindowAE:
 
     def make(self):
         if not self._built and self.encoder_sizes is not None and self.decoder_sizes is not None:
-            stack_size = self.window_size + (self.num_channels+2,)
+            stack_size = self.window_size + (self.num_channels + 2*self.x_pos,)
             input_window = Input(stack_size)
 
             x = Flatten()(input_window)
@@ -48,7 +51,8 @@ class WindowAE:
                 x = Dense(s, activation='relu')(x)
 
             x = Dense(self.decoder_sizes[-1], activation=self.final_activation)(x)
-            # Note, decoder_sizes[-1] does not have to be equal to stack_size in last dimension
+            # Note, decoder_sizes[-1] does not have to be equal to stack_size in last dimension.
+            # Must agree with self.y_pos: if self.y_pos is True then shape includes positional channels.
             decoded = Reshape((*stack_size[:-1], -1))(x)  # must match unraveled decoder_sizes[-1]
 
             self.model = Model(input_window, decoded)
@@ -90,7 +94,7 @@ class WindowAE:
         if batch_size is None:
             batch_size = x.shape[1]
 
-        x_full = self.transform_x(x)
+        x_full = self.transform_x(x, concat_position=self.x_pos)
         enc_full = np.zeros((*x.shape[:2], self.encoder_sizes[-1]))
 
         pixel_count = 0
@@ -133,7 +137,7 @@ class WindowAE:
         if batch_size is None:
             batch_size = x.shape[1]
 
-        x_full = self.transform_x(x)
+        x_full = self.transform_x(x, concat_position=self.x_pos)
         pred = np.zeros_like(x)
         pad_half = tuple(math.floor(s/2) for s in self.window_size)
 
@@ -191,8 +195,8 @@ class WindowAE:
         return pred
 
     def fit(self, x, y, epochs=1, batch_size=32, **kwargs):
-        x_full = self.transform_x(x)
-        y_full = self.transform_y(y)
+        x_full = self.transform_x(x, concat_position=self.x_pos)
+        y_full = self.transform_y(y, concat_position=self.y_pos)
 
         history = []
 
