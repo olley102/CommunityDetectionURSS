@@ -78,8 +78,8 @@ class WindowAE:
 
         if concat_position:
             # Stack array with positional information.
-            pos_i = np.arange(-pad[0], x.shape[0]+pad[0], dtype='float')
-            pos_j = np.arange(-pad[1], x.shape[1]+pad[1], dtype='float')
+            pos_i = np.linspace(0, 1, x.shape[0]+2*pad[0])
+            pos_j = np.linspace(0, 1, x.shape[1]+2*pad[1])
             x_i = np.outer(pos_i, np.ones(x_pad.shape[1], dtype='float'))
             x_j = np.outer(np.ones(x_pad.shape[0], dtype='float'), pos_j)
             x_full = np.dstack((x_pad, x_i, x_j))
