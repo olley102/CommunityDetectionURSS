@@ -31,7 +31,7 @@ class WindowAE:
 
     def auto_decoder_sizes(self, encoder_sizes):
         self.encoder_sizes = encoder_sizes
-        flat_size = self.window_size[0] * self.window_size[1] * self.num_channels
+        flat_size = self.window_size[0] * self.window_size[1] * (self.num_channels + 2*self.y_pos)
         self.decoder_sizes = (*encoder_sizes[-2::-1], flat_size)
 
     def make(self):
