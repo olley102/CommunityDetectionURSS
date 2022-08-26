@@ -6,6 +6,7 @@
 
 import numpy as np
 import numpy.typing as npt
+from numpy import linalg as LA
 from scipy.signal import convolve2d
 from typing import Union
 
@@ -196,3 +197,81 @@ def iteration(arr, n, alpha, uv_init=None, use_previous=False, centering=(0, 0, 
             uv += uv_init
 
     return uv_final
+
+
+"""
+## 5. Object tracking
+"""
+
+
+def object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=0, **iteration_kw):
+    """
+    Object tracking.
+
+    :param image1:
+    :param image2:
+    :param clustering1: clustering coordinates so that each entry of list is an array of coordinates of shape (?, 2)
+    :param clustering2: clustering coordinates so that each entry of list is an array of coordinates of shape (?, 2)
+    :param n:
+    :param alpha:
+    :param direction: direction of assignment of clusters. If 1, then for each cluster in clustering1, find a
+    suitable cluster in clustering2. If -1, then for each cluster in clustering2, find a suitable cluster in
+    clustering1. If 0, then do both and take union.
+    :param iteration_kw:
+    :return:
+    """
+    iteration_kw.pop('centering')
+    images = np.dstack((image1, image2))
+    clustering = [clustering1, clustering2]
+    forward_uv = iteration(images, n, alpha, centering=(0, 0, 1), **iteration_kw)
+    backward_uv = iteration(images, n, alpha, centering=(0, 0, -1), **iteration_kw)
+
+    c1 = c2 = None
+
+    if direction == 1:
+        c1 = 0
+        c2 = 1
+    elif direction == -1:
+        c1 = 1
+        c2 = 0
+    elif direction == 0:
+        assign_fw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=1, **iteration_kw)
+        assign_bw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=1, **iteration_kw)
+        assignments = np.zeros((len(clustering1), len(clustering2)))
+
+        for c in range(len(clustering1)):
+            assignments[c, assign_fw[c]] = 1
+
+        for c in range(len(clustering2)):
+            assignments[assign_bw[c], c] = 1
+
+        return assignments
+    else:
+        raise ValueError(f'direction must be either 0, 1 or -1. Found {direction}')
+
+    assignments = np.zeros(len(clustering[c1]))
+
+    for i in range(len(clustering[c1])):
+        coords1 = clustering[c1][i]
+        sim_max = 0
+        arg_max = 0
+
+        for j in range(len(clustering[c2])):
+            coords2 = clustering[c2][j]
+            dtype = {'names': ('f0', 'f1'),
+                     'formats': (coords1.dtype, coords1.dtype)}
+            intersection = np.intersect1d(coords1.view(dtype), coords2.view(dtype))
+            intersection = intersection.view(coords1.dtype).reshape(-1, 2)
+            c1_vec = forward_uv[:, intersection[:, 0], intersection[:, 1], 0]
+            c2_vec = backward_uv[:, intersection[:, 0], intersection[:, 2], 1]
+            c1_norm = c1_vec / LA.norm(c1_vec, axis=0)
+            c2_norm = c2_vec / LA.norm(c2_vec, axis=0)
+            similarity = np.trace(c1_norm.T @ c2_norm)
+
+            if similarity > sim_max:
+                arg_max = j
+                sim_max = similarity
+
+        assignments[i] = arg_max
+
+    return assignments
