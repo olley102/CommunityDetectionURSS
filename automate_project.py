@@ -123,9 +123,9 @@ class Project:
     def object_tracking(self, frames):
         for i in frames:
             label_pos0 = [np.array(np.where(self.dbscan_images[..., i] == k)).T
-                          for k in range(self.dbscan_images[..., i].max()+1)]
+                          for k in range(int(self.dbscan_images[..., i].max())+1)]
             label_pos1 = [np.array(np.where(self.dbscan_images[..., i+1] == k)).T
-                          for k in range(self.dbscan_images[..., i+1].max()+1)]
+                          for k in range(int(self.dbscan_images[..., i+1].max())+1)]
             yield ip.optical_flow.object_tracking(
                 self.images[..., i], self.images[..., i+1],
                 label_pos0, label_pos1,
