@@ -227,8 +227,6 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
     forward_uv = iteration(images, n, alpha, centering=(0, 0, 1), **iteration_kw)
     backward_uv = iteration(images, n, alpha, centering=(0, 0, -1), **iteration_kw)
 
-    c1 = c2 = None
-
     if direction == 1:
         c1 = 0
         c2 = 1
@@ -237,7 +235,7 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
         c2 = 0
     elif direction == 0:
         assign_fw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=1, **iteration_kw)
-        assign_bw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=1, **iteration_kw)
+        assign_bw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=-1, **iteration_kw)
         assignments = np.zeros((len(clustering1), len(clustering2)))
 
         for c in range(len(clustering1)):

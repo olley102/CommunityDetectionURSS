@@ -114,14 +114,20 @@ class Project:
                 img[kmeans_image == k] = clustering.labels_ + 1
                 pos_img = img[img > 0]
                 if pos_img.size:
-                    self.dbscan_images[img > 0, i] += pos_img + self.dbscan_images[img > 0, i].max() + 1
+                    self.dbscan_images[img > 0, f] += pos_img + self.dbscan_images[img > 0, f].max() + 1
 
-        self.dbscan_images[np.isnan(self.data)] = -1
+            data_nan = np.isnan(self.data[..., f])
+            if np.any(data_nan):
+                self.dbscan_images[data_nan, f] = -1
 
     def object_tracking(self, frames):
         for i in frames:
+            label_pos0 = [np.array(np.where(self.dbscan_images[..., i] == k)).T
+                          for k in range(self.dbscan_images[..., i].max()+1)]
+            label_pos1 = [np.array(np.where(self.dbscan_images[..., i+1] == k)).T
+                          for k in range(self.dbscan_images[..., i+1].max()+1)]
             yield ip.optical_flow.object_tracking(
                 self.images[..., i], self.images[..., i+1],
-                self.dbscan_images[..., i], self.dbscan_images[..., i+1],
+                label_pos0, label_pos1,
                 n=1, alpha=10
             )
