@@ -10,10 +10,10 @@ class Project:
         self.data_fp = data_fp
         self.checkpoint_fp = checkpoint_fp
         self.num_frames = num_frames
-        self.autoencoders = []
+        self.autoencoders = [None] * num_frames
         self.data = None
         self.images = None
-        self.encodings = []
+        self.encodings = [None] * num_frames
         self.kmeans_images = None
         self.dbscan_images = None
         self.scaler = StandardScaler()
