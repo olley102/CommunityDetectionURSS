@@ -15,6 +15,7 @@ class Project:
         self.images = None
         self.uv = None
         self.encodings = [None] * num_frames
+        self.kmeans = [KMeans()] * num_frames
         self.kmeans_images = None
         self.dbscan_images = None
         self.scaler = StandardScaler()
@@ -96,17 +97,24 @@ class Project:
             kmeans.fit(scaled_features)
             kmeans_image = kmeans.labels_.reshape(self.data.shape[:2])
             self.kmeans_images[..., i] = kmeans_image
+            self.kmeans[i] = kmeans
 
-    def dbscan_segmentation(self, frames, n_clusters, eps=10, min_samples=50):
-        for i in frames:
-            label_pos = [np.array(np.where(self.kmeans_images[..., i] == k)).T for k in range(10)]
+    def dbscan_segmentation(self, frames, kmeans_frames=None, eps=10, min_samples=50):
+        if kmeans_frames is None:
+            kmeans_frames = frames
+        for i, f in enumerate(frames):
+            kmeans = self.kmeans[kmeans_frames[i]]
+            scaled_features = self.scaler.fit_transform(self.encodings[f])
+            kmeans_image = kmeans.predict(scaled_features).reshape(self.data.shape[:2])
 
-            for k in range(n_clusters):
-                clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(label_pos[k])
-                img = np.zeros_like(self.kmeans_images[..., i])
-                img[self.kmeans_images[..., i] == k] = clustering.labels_ + 1
+            for k in range(kmeans.n_clusters):
+                label_pos = np.array(np.where(kmeans_image == k)).T
+                clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(label_pos)
+                img = np.zeros_like(kmeans_image)
+                img[kmeans_image == k] = clustering.labels_ + 1
                 pos_img = img[img > 0]
-                self.dbscan_images[img > 0, i] += pos_img + self.dbscan_images[img > 0, i].max() + 1
+                if pos_img.size:
+                    self.dbscan_images[img > 0, i] += pos_img + self.dbscan_images[img > 0, i].max() + 1
 
         self.dbscan_images[np.isnan(self.data)] = -1
 
