@@ -55,8 +55,8 @@ class Project:
             yield history
 
     def load_epochs(self, frames, epochs):
-        for i in frames:
-            self.autoencoders[i].load_epoch(self.checkpoint_fp.format(frame=i, epoch='{epoch}'), epochs[i])
+        for i, f in enumerate(frames):
+            self.autoencoders[f].load_epoch(self.checkpoint_fp.format(frame=f, epoch='{epoch}'), epochs[i])
 
     def encode(self, frames):
         batch_size = self.images.shape[1] * 10
