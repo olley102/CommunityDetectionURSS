@@ -220,7 +220,8 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
     :param iteration_kw:
     :return:
     """
-    iteration_kw.pop('centering')
+    if 'centering' in iteration_kw:
+        iteration_kw.pop('centering')
     images = np.dstack((image1, image2))
     clustering = [clustering1, clustering2]
     forward_uv = iteration(images, n, alpha, centering=(0, 0, 1), **iteration_kw)
