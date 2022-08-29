@@ -13,6 +13,7 @@ class Project:
         self.autoencoders = [ip.nn.WindowAE()] * num_frames
         self.data = None
         self.images = None
+        self.uv = None
         self.encodings = [None] * num_frames
         self.kmeans_images = None
         self.dbscan_images = None
@@ -37,10 +38,10 @@ class Project:
         self.dbscan_images = -np.ones_like(self.data)
 
     def fit_autoencoders(self, frames):
-        uv = ip.optical_flow.iteration(self.images, 1, alpha=10, use_previous=True, centering=(0, 0, 0))
+        self.uv = ip.optical_flow.iteration(self.images, 1, alpha=10, use_previous=True, centering=(0, 0, 0))
 
         for i in frames:
-            image = np.dstack((self.images[..., i], np.moveaxis(uv[..., i], 0, -1)))
+            image = np.dstack((self.images[..., i], np.moveaxis(self.uv[..., i], 0, -1)))
             image = np.clip(image, None, 1000)
             ae = ip.nn.WindowAE(window_size=(7, 7), num_channels=3)
             ae.auto_decoder_sizes((128, 64, 16))
@@ -53,15 +54,17 @@ class Project:
 
             yield history
 
-    def load_epochs(self, frames, *epochs):
+    def load_epochs(self, frames, epochs):
         for i in frames:
             self.autoencoders[i].load_epoch(self.checkpoint_fp.format(frame=i, epoch='{epoch}'), epochs[i])
 
     def encode(self, frames):
         batch_size = self.images.shape[1] * 10
         for i in frames:
+            image = np.dstack((self.images[..., i], np.moveaxis(self.uv[..., i], 0, -1)))
+            image = np.clip(image, None, 1000)
             encoding = self.autoencoders[i].encode(
-                self.images[..., i], verbose=True, batch_size=batch_size
+                image, verbose=True, batch_size=batch_size
             ).reshape(-1, 16)
             self.encodings[i] = encoding
             yield encoding
@@ -69,7 +72,9 @@ class Project:
     def predict(self, frames):
         batch_size = self.images.shape[1] * 10
         for i in frames:
-            yield self.autoencoders[i].predict(self.images[..., i], verbose=True, batch_size=batch_size)
+            image = np.dstack((self.images[..., i], np.moveaxis(self.uv[..., i], 0, -1)))
+            image = np.clip(image, None, 1000)
+            yield self.autoencoders[i].predict(image, verbose=True, batch_size=batch_size)
 
     def sse_search(self, frames):
         for i in frames:
