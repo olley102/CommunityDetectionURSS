@@ -45,7 +45,7 @@ class Project:
             ae.auto_decoder_sizes((128, 64, 16))
             ae.make()
             ae.compile()
-            ae.make_callback(self.checkpoint_fp, period=10)
+            ae.make_callback(self.checkpoint_fp.format(frame=i, epoch='epoch'), period=10)
             ae.fit_transform(image)
             history = ae.fit(image, image, epochs=200, batch_size=1000)
             self.autoencoders.append(ae)
@@ -54,7 +54,7 @@ class Project:
 
     def load_epochs(self, *epochs):
         for i in range(len(epochs)):
-            self.autoencoders[i].load_epoch(self.checkpoint_fp, epochs[i])
+            self.autoencoders[i].load_epoch(self.checkpoint_fp.format(frame=i, epoch='epoch'), epochs[i])
 
     def encode(self, num_frames):
         batch_size = self.images.shape[1] * 10
