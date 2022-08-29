@@ -99,12 +99,12 @@ class Project:
 
     def dbscan_segmentation(self, frames, n_clusters, eps=10, min_samples=50):
         for i in frames:
-            label_pos = [np.array(np.where(self.kmeans_images[i] == k)).T for k in range(10)]
+            label_pos = [np.array(np.where(self.kmeans_images[..., i] == k)).T for k in range(10)]
 
             for k in range(n_clusters):
                 clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(label_pos[k])
-                img = np.zeros_like(self.kmeans_images[i])
-                img[self.kmeans_images[i] == k] = clustering.labels_ + 1
+                img = np.zeros_like(self.kmeans_images[..., i])
+                img[self.kmeans_images[..., i] == k] = clustering.labels_ + 1
                 pos_img = img[img > 0]
                 self.dbscan_images[img > 0, i] += pos_img + self.dbscan_images[img > 0, i].max() + 1
 
