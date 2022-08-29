@@ -6,9 +6,10 @@ from sklearn.preprocessing import StandardScaler
 
 
 class Project:
-    def __init__(self, data_fp, checkpoint_fp):
+    def __init__(self, data_fp, checkpoint_fp, num_frames):
         self.data_fp = data_fp
         self.checkpoint_fp = checkpoint_fp
+        self.num_frames = num_frames
         self.autoencoders = []
         self.data = None
         self.images = None
@@ -18,14 +19,14 @@ class Project:
         self.scaler = StandardScaler()
         self.kmeans_kwargs = dict(init='random', n_init=10, max_iter=10, random_state=42)
 
-    def load_data(self, num_frames):
+    def load_data(self):
         with rasterio.open(self.data_fp.format(0), 'r') as ds:
             time0 = ds.read()
 
-        self.data = np.zeros((time0.shape[1], time0.shape[2], num_frames), dtype='float')
+        self.data = np.zeros((time0.shape[1], time0.shape[2], self.num_frames), dtype='float')
         self.data[..., 0] = time0[0]
 
-        for i in range(num_frames-1):
+        for i in range(self.num_frames-1):
             with rasterio.open(self.data_fp.format(i + 1), 'r') as ds:
                 self.data[..., i + 1] = ds.read()[0]
 
@@ -35,10 +36,10 @@ class Project:
         self.kmeans_images = np.zeros_like(self.data)
         self.dbscan_images = -np.ones_like(self.data)
 
-    def fit_autoencoders(self, num_frames):
+    def fit_autoencoders(self, frames):
         uv = ip.optical_flow.iteration(self.images, 1, alpha=10, use_previous=True, centering=(0, 0, 0))
 
-        for i in range(num_frames):
+        for i in frames:
             image = np.dstack((self.images[..., i], np.moveaxis(uv[..., i], 0, -1)))
             image = np.clip(image, None, 1000)
             ae = ip.nn.WindowAE(window_size=(7, 7), num_channels=3)
@@ -52,26 +53,26 @@ class Project:
 
             yield history
 
-    def load_epochs(self, *epochs):
-        for i in range(len(epochs)):
+    def load_epochs(self, frames, *epochs):
+        for i in frames:
             self.autoencoders[i].load_epoch(self.checkpoint_fp.format(frame=i, epoch='epoch'), epochs[i])
 
-    def encode(self, num_frames):
+    def encode(self, frames):
         batch_size = self.images.shape[1] * 10
-        for i in range(num_frames):
+        for i in frames:
             encoding = self.autoencoders[i].encode(
                 self.images[..., i], verbose=True, batch_size=batch_size
             ).reshape(-1, 16)
             self.encodings.append(encoding)
             yield encoding
 
-    def predict(self, num_frames):
+    def predict(self, frames):
         batch_size = self.images.shape[1] * 10
-        for i in range(num_frames):
+        for i in frames:
             yield self.autoencoders[i].predict(self.images[..., i], verbose=True, batch_size=batch_size)
 
-    def sse_search(self, num_frames):
-        for i in range(num_frames):
+    def sse_search(self, frames):
+        for i in frames:
             scaled_features = self.scaler.fit_transform(self.encodings[i])
             sse = []
 
@@ -83,16 +84,16 @@ class Project:
 
             yield sse
 
-    def kmeans_segmentation(self, num_frames, n_clusters=10):
-        for i in range(num_frames):
+    def kmeans_segmentation(self, frames, n_clusters=10):
+        for i in frames:
             scaled_features = self.scaler.fit_transform(self.encodings[i])
             kmeans = KMeans(n_clusters=n_clusters, **self.kmeans_kwargs)
             kmeans.fit(scaled_features)
             kmeans_image = kmeans.labels_.reshape(self.data.shape[:2])
             self.kmeans_images[..., i] = kmeans_image
 
-    def dbscan_segmentation(self, num_frames, n_clusters, eps=10, min_samples=50):
-        for i in range(num_frames):
+    def dbscan_segmentation(self, frames, n_clusters, eps=10, min_samples=50):
+        for i in frames:
             label_pos = [np.array(np.where(self.kmeans_images[i] == k)).T for k in range(10)]
 
             for k in range(n_clusters):
@@ -104,8 +105,8 @@ class Project:
 
         self.dbscan_images[np.isnan(self.data)] = -1
 
-    def object_tracking(self, num_frames):
-        for i in range(num_frames-1):
+    def object_tracking(self, frames):
+        for i in frames:
             yield ip.optical_flow.object_tracking(
                 self.images[..., i], self.images[..., i+1],
                 self.dbscan_images[..., i], self.dbscan_images[..., i+1],
