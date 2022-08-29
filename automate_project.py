@@ -16,9 +16,9 @@ class Project:
         self.uv = None
         self.encodings = [None] * num_frames
         self.kmeans = [KMeans()] * num_frames
+        self.scalers = [StandardScaler()] * num_frames
         self.kmeans_images = None
         self.dbscan_images = None
-        self.scaler = StandardScaler()
         self.kmeans_kwargs = dict(init='random', n_init=10, max_iter=10, random_state=42)
 
     def load_data(self):
@@ -79,7 +79,7 @@ class Project:
 
     def sse_search(self, frames):
         for i in frames:
-            scaled_features = self.scaler.fit_transform(self.encodings[i])
+            scaled_features = self.scalers[i].fit_transform(self.encodings[i])
             sse = []
 
             for k in range(2, 21):
@@ -92,7 +92,7 @@ class Project:
 
     def kmeans_segmentation(self, frames, n_clusters=10):
         for i in frames:
-            scaled_features = self.scaler.fit_transform(self.encodings[i])
+            scaled_features = self.scalers[i].fit_transform(self.encodings[i])
             kmeans = KMeans(n_clusters=n_clusters, **self.kmeans_kwargs)
             kmeans.fit(scaled_features)
             kmeans_image = kmeans.labels_.reshape(self.data.shape[:2])
@@ -104,7 +104,7 @@ class Project:
             kmeans_frames = frames
         for i, f in enumerate(frames):
             kmeans = self.kmeans[kmeans_frames[i]]
-            scaled_features = self.scaler.fit_transform(self.encodings[f])
+            scaled_features = self.scalers[kmeans_frames[i]].transform(self.encodings[f])
             kmeans_image = kmeans.predict(scaled_features).reshape(self.data.shape[:2])
 
             for k in range(kmeans.n_clusters):
