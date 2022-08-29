@@ -10,7 +10,7 @@ class Project:
         self.data_fp = data_fp
         self.checkpoint_fp = checkpoint_fp
         self.num_frames = num_frames
-        self.autoencoders = [None] * num_frames
+        self.autoencoders = [ip.nn.WindowAE()] * num_frames
         self.data = None
         self.images = None
         self.encodings = [None] * num_frames
@@ -49,7 +49,7 @@ class Project:
             ae.make_callback(self.checkpoint_fp.format(frame=i, epoch='epoch'), period=10)
             ae.fit_transform(image)
             history = ae.fit(image, image, epochs=200, batch_size=1000)
-            self.autoencoders.append(ae)
+            self.autoencoders[i] = ae
 
             yield history
 
@@ -63,7 +63,7 @@ class Project:
             encoding = self.autoencoders[i].encode(
                 self.images[..., i], verbose=True, batch_size=batch_size
             ).reshape(-1, 16)
-            self.encodings.append(encoding)
+            self.encodings[i] = encoding
             yield encoding
 
     def predict(self, frames):
