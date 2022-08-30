@@ -258,7 +258,6 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
 
         for j in range(len(clustering[c2])):
             coords2 = clustering[c2][j]
-            print(coords2)
             coords2_ravel = np.ravel_multi_index(coords2.T, images.shape[:2])
             intersection_ravel = np.intersect1d(coords1_ravel, coords2_ravel)
             intersection = np.array(np.unravel_index(intersection_ravel, images.shape[:2])).T
