@@ -262,11 +262,11 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
             intersection_ravel = np.intersect1d(coords1_ravel, coords2_ravel)
             intersection = np.array(np.unravel_index(intersection_ravel, images.shape[:2])).T
 
-            c1_vec = forward_uv[:, intersection[:, 0], intersection[:, 1], 0]
-            c2_vec = backward_uv[:, intersection[:, 0], intersection[:, 2], 1]
-            c1_norm = c1_vec / LA.norm(c1_vec, axis=0)
-            c2_norm = c2_vec / LA.norm(c2_vec, axis=0)
-            similarity = np.trace(c1_norm.T @ c2_norm)
+            uv_vec1 = forward_uv[:, intersection[:, 0], intersection[:, 1], 0]
+            uv_vec2 = backward_uv[:, intersection[:, 0], intersection[:, 1], 1]
+            norm1 = uv_vec1 / LA.norm(uv_vec1, axis=0)
+            norm2 = uv_vec2 / LA.norm(uv_vec2, axis=0)
+            similarity = np.trace(norm1.T @ norm2)
 
             if similarity > sim_max:
                 arg_max = j
