@@ -250,16 +250,13 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
 
     assignments = np.zeros(len(clustering[c1]))
 
-    # for i in range(len(clustering[c1])):
-    for i in range(116, 117):
+    for i in range(len(clustering[c1])):
         coords1 = clustering[c1][i]
         coords1_ravel = np.ravel_multi_index(coords1.T, images.shape[:2])
         sim_max = 0
         arg_max = -1
 
-        # for j in range(len(clustering[c2])):
-        for j in range(19, 20):
-            print(f'i: {i}, j: {j}')  # some pairs cause this process to crash! Why?
+        for j in range(len(clustering[c2])):
             coords2 = clustering[c2][j]
             print(coords2)
             coords2_ravel = np.ravel_multi_index(coords2.T, images.shape[:2])
