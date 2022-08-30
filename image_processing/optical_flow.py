@@ -250,15 +250,18 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
 
     assignments = np.zeros(len(clustering[c1]))
 
-    for i in range(len(clustering[c1])):
+    # for i in range(len(clustering[c1])):
+    for i in range(116, 117):
         coords1 = clustering[c1][i]
         coords1_ravel = np.ravel_multi_index(coords1.T, images.shape[:2])
         sim_max = 0
         arg_max = -1
 
-        for j in range(len(clustering[c2])):
-            print(f'i: {i}, j: {j}')
+        # for j in range(len(clustering[c2])):
+        for j in range(19, 20):
+            print(f'i: {i}, j: {j}')  # some pairs cause this process to crash! Why?
             coords2 = clustering[c2][j]
+            print(coords2)
             coords2_ravel = np.ravel_multi_index(coords2.T, images.shape[:2])
             intersection_ravel = np.intersect1d(coords1_ravel, coords2_ravel)
             intersection = np.array(np.unravel_index(intersection_ravel, images.shape[:2])).T
@@ -267,7 +270,12 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
             uv_vec2 = backward_uv[:, intersection[:, 0], intersection[:, 1], 1]
             norm1 = uv_vec1 / LA.norm(uv_vec1, axis=0)
             norm2 = uv_vec2 / LA.norm(uv_vec2, axis=0)
-            similarity = np.trace(norm1.T @ norm2)
+            norm1[np.isnan(norm1)] = 0.0
+            norm2[np.isnan(norm2)] = 0.0
+
+            similarity = 0.0
+            for p in range(intersection.shape[0]):
+                similarity += norm1[0, p] * norm2[0, p] + norm1[1, p] * norm2[1, p]
 
             if similarity > sim_max:
                 arg_max = j
