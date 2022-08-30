@@ -236,7 +236,7 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
     elif direction == 0:
         assign_fw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=1, **iteration_kw)
         assign_bw = object_tracking(image1, image2, clustering1, clustering2, n, alpha, direction=-1, **iteration_kw)
-        assignments = np.zeros((len(clustering1), len(clustering2)))
+        assignments = np.zeros((len(clustering1), len(clustering2)), dtype='int')
 
         for c in range(len(clustering1)):
             assignments[c, assign_fw[c]] = 1
@@ -248,7 +248,7 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
     else:
         raise ValueError(f'direction must be either 0, 1 or -1. Found {direction}')
 
-    assignments = np.zeros(len(clustering[c1]))
+    assignments = np.zeros(len(clustering[c1]), dtype='int')
 
     for i in range(len(clustering[c1])):
         coords1 = clustering[c1][i]
@@ -290,6 +290,6 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
         del coords1
         del coords1_ravel
 
-        assignments[i] = arg_max
+        assignments[i] = int(arg_max)
 
     return assignments
