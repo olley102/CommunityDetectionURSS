@@ -273,6 +273,19 @@ def object_tracking(image1, image2, clustering1, clustering2, n, alpha, directio
                 arg_max = j
                 sim_max = similarity
 
+            del coords2
+            del coords2_ravel
+            del intersection_ravel
+            del intersection
+            del uv_vec1
+            del uv_vec2
+            del norm1
+            del norm2
+            del similarity
+
+        del coords1
+        del coords1_ravel
+
         assignments[i] = arg_max
 
     return assignments
