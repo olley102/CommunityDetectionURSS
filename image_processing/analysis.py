@@ -73,3 +73,24 @@ def silhouette_plot(x, y, figsize=(16, 9), xlim=(-0.1, 1)):
     ax.set_xticks(np.arange(int(10 * xlim[0]), int(10 * xlim[1]) + 1) / 10)
 
     return fig
+
+
+def performance_density_plot(image1, image2, vmin, vmax, num_bins, measure=None):
+    if measure is None:
+        def measure(x, y):
+            return (x - y) ** 2
+
+    image1_space = np.linspace(vmin, vmax, num_bins)
+    interval = image1_space[1] - image1_space[0]
+    quality = np.zeros(num_bins)
+
+    for i in range(image1.shape[0]):
+        for j in range(image1.shape[1]):
+            value = image1[i, j]
+            index = round(value / interval)
+            meas = measure(value, image2[i, j])
+            quality[index] += meas
+
+    quality /= interval
+
+    return image1_space, quality
