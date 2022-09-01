@@ -2,6 +2,7 @@ import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from numpy import linalg as LA
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 
@@ -88,8 +89,10 @@ def performance_density(image1, image2, vmin, vmax, num_bins, measure=None):
     for i in range(image1.shape[0]):
         for j in range(image1.shape[1]):
             value = image1[i, j]
-            index = round(value / interval)
             meas = measure(value, image2[i, j])
+            if isinstance(value, np.ndarray):
+                value = LA.norm(value)
+            index = round(value / interval)
             quality[index] += meas
             total_meas += meas
 
