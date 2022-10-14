@@ -32,3 +32,9 @@ Image segmentation is the process of dividing an image into subsets of pixels ba
 - `object_tracking.ipynb`: apply **cosine similarity** rule to match clusters across consecutive frames
 - `project_automation.ipynb`: automate project using `automate_project.py` to reduce code duplication
 - `performance_analysis.ipynb`: graphically analyse the performance of various methods used in project
+
+# Autoencoder architecture
+
+![image](https://github.com/olley102/PopulationCountClustering/blob/main/autoencoder_segmentation.png?raw=true)
+
+The autoencoder above is used for finding latent representations of individual pixels. A sliding window of size 7 × 7 is considered the input to the network. At each epoch, a random sample of pixels is chosen as the central pixels of the windows. The optical flow velocities and positions of the pixels are concatenated to the image to form windows of size 7 × 7 × 5. The reconstruction is of size 7 × 7 × 3, with position discarded. With all information discarded except the central pixel, the reconstruction and encoding of each pixel is embedded into a 2D grid of the same shape as the input.
